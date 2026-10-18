@@ -2,6 +2,12 @@
 
 最好用的 sing-box 一键安装脚本 & 管理脚本
 
+# 文档
+
+- [sing-box 一键安装脚本使用说明](docs/usage.md)（安装、全部参数说明、更新与常见问题排查）
+- [sing-box 一键搭建教程](docs/install-guide.md)
+- [DNS 设置](docs/dns.md) | [中转教程](docs/relay.md) | [no-auto-tls 说明](docs/no-auto-tls.md) | [自动 TLS 说明](docs/auto-tls.md)
+
 # 特点
 
 - 快速安装
