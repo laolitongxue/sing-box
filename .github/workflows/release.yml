@@ -38,9 +38,9 @@ jobs:
           sed -i '/Just My Socks/Id' src/*.sh *.sh 2>/dev/null || true
 
           # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG（先保护 233boy.com 文档链接不被误伤）
-          sed -i "s/233boy\.com/__DOCS_233BOY__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s/233boy\.com/__DOCS_LINK__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
-          sed -i "s/__DOCS_233BOY__/233boy.com/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s/__DOCS_LINK__/233boy.com/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
       - name: Package script archives
         run: |
