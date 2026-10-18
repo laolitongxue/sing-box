@@ -39,11 +39,20 @@ jobs:
           # 2b. 上游把机场广告 URL 混淆为单字符变量拼接（https://g${c}e${n}t${m}j${s}m${b}s.com/），
           #     字面匹配不到，须按行删除（VPS 实测 2026-10-18：仅删 Just My Socks 漏掉此行）
           sed -i '/推广(ads)/d; /机场推荐/d' src/*.sh *.sh 2>/dev/null || true
+          # 2c. 删除面板 Twitter 行（2026-10-18 老板要求：不怎么用 Twitter，help.sh 仅此一处）
+          sed -i '/Twitter/d' src/*.sh *.sh 2>/dev/null || true
 
           # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG（先保护 233boy.com 文档链接不被误伤）
           sed -i "s/233boy\.com/__DOCS_LINK__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s/__DOCS_LINK__/233boy.com/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+
+          # 4. 文档链接改指自托管文档（2026-10-18 拍板：个人文档已落地 fork docs/，不再保留 233boy.com 链接）
+          #    核心脚本内的 ^233boy.com$ 域名检查为 no-auto-tls 功能逻辑（非链接），不在此列，保持原样
+          sed -i "s|https://233boy.com/\$is_core/\$is_core-script/|https://github.com/\$is_sh_repo/blob/main/docs/usage.md|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|https://233boy.com/\$is_core/no-auto-tls/|https://github.com/\$is_sh_repo/blob/main/docs/no-auto-tls.md|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|https://233boy.com/\$is_core/caddy-auto-tls/|https://github.com/\$is_sh_repo/blob/main/docs/auto-tls.md|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|https://233boy.com|https://github.com/\$is_sh_repo/tree/main/docs|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
       - name: Package script archives
         run: |
