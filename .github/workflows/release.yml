@@ -1,31 +1,61 @@
-name: Main
+name: Build Clean Script Release
 
-on: push
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+env:
+  # 面板签名与节点默认备注前缀（替换 "by 233boy" 及节点名称前缀）= GitHub 用户名
+  CUSTOM_TAG: "laolitongxue"
+  # 替换面板底部显示的 233boy.com 文档链接
+  CUSTOM_DOMAIN: "github.com/laolitongxue"
+
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: get ver
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Customize author, remove ads, and clean signatures
         run: |
-          echo "$(cat *.sh | grep is_sh_ver=)" >> $GITHUB_ENV
-          echo "old=$(git tag | tail -n1)" >> $GITHUB_ENV
-      # - name: test
-      #   if: env.is_sh_ver == env.old 
-      #   run: |
-      #     echo not found new version.
-      #     exit 1
-      - name: tar
-        run: tar zcvf code.tar.gz ./*
-      - name: release
-        uses: softprops/action-gh-release@v1
+          OWNER="${{ github.repository_owner }}"
+          echo "Using repository owner: ${OWNER}"
+
+          # 1. 下载源 author=233boy -> 你的 GitHub 用户名（install.sh 与 update sh 指向你的仓库）
+          sed -i "s/author=233boy/author=${OWNER}/g" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s|233boy/sing-box|${OWNER}/sing-box|g" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s|233boy/Xray|${OWNER}/Xray|gi" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s|233boy/v2ray|${OWNER}/v2ray|gi" install.sh *.sh src/*.sh 2>/dev/null || true
+
+          # 2. 移除内置推广文案、TG 群组与 233boy.com 链接
+          sed -i "s|233boy\.com|${CUSTOM_DOMAIN}|g" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i '/t\.me\/tg233/d' src/*.sh *.sh 2>/dev/null || true
+          sed -i '/Just My Socks/Id' src/*.sh *.sh 2>/dev/null || true
+
+          # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG
+          sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh 2>/dev/null || true
+
+      - name: Package script archives
+        run: |
+          mkdir -p build_out
+          tar -zcf build_out/code.tar.gz --exclude='./.git*' --exclude='./build_out' .
+          zip -qr build_out/code.zip . -x ".git*" "build_out/*"
+          cp -f install.sh build_out/install.sh
+
+      - name: Create or Update Latest Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: code.tar.gz
-          tag_name: ${{ env.is_sh_ver }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Clean Release v1.0.${{ github.run_number }}"
+          make_latest: true
+          files: |
+            build_out/code.tar.gz
+            build_out/code.zip
+            build_out/install.sh
