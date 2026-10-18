@@ -36,6 +36,9 @@ jobs:
           # 2. 移除内置推广文案、TG 群组（文档链接保留 233boy.com，仅去签名）
           sed -i '/t\.me\/tg233/d' src/*.sh *.sh 2>/dev/null || true
           sed -i '/Just My Socks/Id' src/*.sh *.sh 2>/dev/null || true
+          # 2b. 上游把机场广告 URL 混淆为单字符变量拼接（https://g${c}e${n}t${m}j${s}m${b}s.com/），
+          #     字面匹配不到，须按行删除（VPS 实测 2026-10-18：仅删 Just My Socks 漏掉此行）
+          sed -i '/推广(ads)/d; /机场推荐/d' src/*.sh *.sh 2>/dev/null || true
 
           # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG（先保护 233boy.com 文档链接不被误伤）
           sed -i "s/233boy\.com/__DOCS_LINK__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
