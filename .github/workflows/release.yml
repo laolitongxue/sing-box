@@ -54,6 +54,38 @@ jobs:
           sed -i "s|https://233boy.com/\$is_core/caddy-auto-tls/|https://github.com/\$is_sh_repo/blob/main/docs/auto-tls.md|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s|https://233boy.com|https://github.com/\$is_sh_repo/tree/main/docs|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
+      - name: Inject install-time hooks (auto BBR + firewall allow)
+        run: |
+          # 防御性去 CRLF（编辑器/git 换行转换可能引入 \r，Linux 上会炸 shell）
+          sed -i 's/\r$//' install.sh
+          # 在 install.sh 尾部锚点（exit_and_del_tmpdir ok，两 fork 各唯一一处）前注入：
+          #   BBR：load bbr.sh && _try_enable_bbr（上游自带函数，内核>=4.9 有保护，写 sysctl.conf 持久化）
+          #   防火墙：ufw active 则自动放行节点端口；ufw 未装/未启用则打印安全组放行提示
+          # 端口发现核心无关：扫主 config.json + conf/*.json，sing-box=listen_port 字段、
+          #   Xray=port 字段，排除 127.0.0.1 回环 api inbound（jq 过滤器已在上游 VPS 实测 54298/14725）
+          python3 - <<'PYEOF'
+          block = """    # [custom-hooks] auto BBR + firewall allow (injected by release workflow)
+              load bbr.sh
+              _try_enable_bbr
+              _fw_ports=$(jq -r '.inbounds[]? | select((.listen // "") != "127.0.0.1") | (.listen_port // .port)? // empty' $is_config_json $is_conf_dir/*.json 2>/dev/null | grep -E '^[0-9]+$' | sort -nu)
+              if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
+                  [[ $_fw_ports ]] && _green "..ufw 已放行端口: $_fw_ports/tcp.."
+              else
+                  [[ $_fw_ports ]] && _green "..ufw 未启用, 请在云安全组手动放行端口: $_fw_ports/tcp.."
+              fi
+              """
+          for f in ("install.sh",):
+              s = open(f).read()
+              anchor = "    exit_and_del_tmpdir ok"
+              assert s.count(anchor) == 1, "anchor not unique in " + f
+              s = s.replace(anchor, block.rstrip() + "\n" + anchor)
+              open(f, "w", newline="\n").write(s)
+              print("injected hooks into", f)
+          PYEOF
+          # 构建期闸门：注入后 install.sh 必须语法合法，否则构建直接失败
+          bash -n install.sh && echo "install.sh syntax OK"
+          grep -n "custom-hooks" install.sh
+
       - name: Package script archives
         run: |
           mkdir -p build_out
