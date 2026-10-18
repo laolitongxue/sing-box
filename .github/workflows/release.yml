@@ -88,8 +88,13 @@ jobs:
               open(f, "w", newline="\n").write(s)
               print("injected hooks into", f)
           PYEOF
-          # 构建期闸门：注入后 install.sh 必须语法合法，否则构建直接失败
-          bash -n install.sh && echo "install.sh syntax OK"
+          # 构建期闸门：注入后语法必须合法，否则构建直接失败；
+          # 去 CRLF 的 sed 覆盖了全部 .sh，闸门须同样覆盖（任一文件语法错误即失败）
+          for f in install.sh *.sh src/*.sh; do
+            bash -n "$f" || exit 1
+            echo "$f syntax OK"
+          done
+          set +e
           grep -n "custom-hooks" install.sh
 
       - name: Package script archives
