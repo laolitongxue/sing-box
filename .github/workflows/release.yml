@@ -42,10 +42,13 @@ jobs:
           # 2c. 删除面板 Twitter 行（2026-10-18 老板要求：不怎么用 Twitter，help.sh 仅此一处）
           sed -i '/Twitter/d' src/*.sh *.sh 2>/dev/null || true
 
-          # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG（先保护 233boy.com 文档链接不被误伤）
+          # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG（先保护 233boy.com 文档链接与
+          #    233boy.github.io 二维码工具链接(功能性 URL,CC 审查 2026-10-18 #2)不被 blanket sed 误伤）
           sed -i "s/233boy\.com/__DOCS_LINK__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s/233boy\.github\.io/__QR_LINK__/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i "s/__DOCS_LINK__/233boy.com/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s/__QR_LINK__/233boy.github.io/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
           # 4. 文档链接改指自托管文档（2026-10-18 拍板：个人文档已落地 fork docs/，不再保留 233boy.com 链接）
           #    核心脚本内的 ^233boy.com$ 域名检查为 no-auto-tls 功能逻辑（非链接），不在此列，保持原样
@@ -56,8 +59,8 @@ jobs:
 
       - name: Inject install-time hooks (auto BBR + firewall allow)
         run: |
-          # 防御性去 CRLF（编辑器/git 换行转换可能引入 \r，Linux 上会炸 shell）
-          sed -i 's/\r$//' install.sh
+          # 防御性去 CRLF（编辑器/git 换行转换可能引入 \r，Linux 上会炸 shell；覆盖全部 .sh，CC 审查 #5）
+          sed -i 's/\r$//' install.sh *.sh src/*.sh 2>/dev/null || true
           # 在 install.sh 尾部锚点（exit_and_del_tmpdir ok，两 fork 各唯一一处）前注入：
           #   BBR：load bbr.sh && _try_enable_bbr（上游自带函数，内核>=4.9 有保护，写 sysctl.conf 持久化）
           #   防火墙：ufw active 则自动放行节点端口；ufw 未装/未启用则打印安全组放行提示
@@ -66,12 +69,15 @@ jobs:
           python3 - <<'PYEOF'
           block = """    # [custom-hooks] auto BBR + firewall allow (injected by release workflow)
               load bbr.sh
+              is_dont_auto_exit=1
               _try_enable_bbr
+              unset is_dont_auto_exit
               _fw_ports=$(jq -r '.inbounds[]? | select((.listen // "") != "127.0.0.1") | (.listen_port // .port)? // empty' $is_config_json $is_conf_dir/*.json 2>/dev/null | grep -E '^[0-9]+$' | sort -nu)
               if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-                  [[ $_fw_ports ]] && _green "..ufw 已放行端口: $_fw_ports/tcp.."
+                  for _p in $_fw_ports; do ufw allow $_p >/dev/null 2>&1; done
+                  [[ $_fw_ports ]] && _green "..ufw 已放行端口: $_fw_ports.."
               else
-                  [[ $_fw_ports ]] && _green "..ufw 未启用, 请在云安全组手动放行端口: $_fw_ports/tcp.."
+                  [[ $_fw_ports ]] && _green "..ufw 未启用, 请在云安全组手动放行端口: $_fw_ports.."
               fi
               """
           for f in ("install.sh",):
