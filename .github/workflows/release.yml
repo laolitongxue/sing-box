@@ -29,18 +29,18 @@ jobs:
           echo "Using repository owner: ${OWNER}"
 
           # 1. 下载源 author=233boy -> 你的 GitHub 用户名（install.sh 与 update sh 指向你的仓库）
-          sed -i "s/author=233boy/author=${OWNER}/g" install.sh *.sh src/*.sh 2>/dev/null || true
-          sed -i "s|233boy/sing-box|${OWNER}/sing-box|g" install.sh *.sh src/*.sh 2>/dev/null || true
-          sed -i "s|233boy/Xray|${OWNER}/Xray|gi" install.sh *.sh src/*.sh 2>/dev/null || true
-          sed -i "s|233boy/v2ray|${OWNER}/v2ray|gi" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s/author=233boy/author=${OWNER}/g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|233boy/sing-box|${OWNER}/sing-box|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|233boy/Xray|${OWNER}/Xray|gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
+          sed -i "s|233boy/v2ray|${OWNER}/v2ray|gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
           # 2. 移除内置推广文案、TG 群组与 233boy.com 链接
-          sed -i "s|233boy\.com|${CUSTOM_DOMAIN}|g" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s|233boy\.com|${CUSTOM_DOMAIN}|g" install.sh *.sh src/*.sh README.md 2>/dev/null || true
           sed -i '/t\.me\/tg233/d' src/*.sh *.sh 2>/dev/null || true
           sed -i '/Just My Socks/Id' src/*.sh *.sh 2>/dev/null || true
 
           # 3. 剩余 233boy 签名与节点名称前缀 -> CUSTOM_TAG
-          sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh 2>/dev/null || true
+          sed -i "s/233boy/${CUSTOM_TAG}/gi" install.sh *.sh src/*.sh README.md 2>/dev/null || true
 
       - name: Package script archives
         run: |
